@@ -37,36 +37,38 @@ class SnmpManager(BaseException):
             lenOID = len(OID)
             lenComm = len(community)
             #montar msg
-            SVal = '50'
+            #Monta mensagem SNMP de trás para frente
+            #Value Field
+            SVal = hex(50)
+
             #Objeto Field
-            TypeOId = chr(0x06)
+            TypeOId = hex(6)
             SOid = TypeOId + chr(lenOID) + OID
 
             #Sequence / Varbind Type Field
-            TypeVarbind = chr(0x30) # tipo varbind
-            SVarbind = TypeVarbind + chr(lenOID + 2 + 2) + SOid + SVal
+            TypeVarbind = hex(30) # tipo varbind
+            SVarbind = TypeVarbind + hex(lenOID + 2 + 2) + SOid + SVal
 
             #Sequence / Varbind List Field
-            TypeVarbindList = chr(0x30) # tipo varbind list
-            SVarbindList = TypeVarbindList + chr(len(SVarbind)) + SVarbind
+            TypeVarbindList = hex(30) # tipo varbind list
+            SVarbindList = TypeVarbindList + hex(len(SVarbind)) + SVarbind
 
             #campos Request ID, Error, ErrorIndex
-            RqID = chr(2) + chr(1) + chr(1)
-            Err = chr(2) + chr(1) + chr(0)
-            ErrIndex = chr(2) + chr(1) + chr(0)
+            RqID = hex(2) + hex(1) + hex(1)
+            Err = hex(2) + hex(1) + hex(0)
+            ErrIndex = hex(2) + hex(1) + hex(0)
 
-            SPDU = chr(0xa0) + chr(3 + 3 + 3 + len(SVarbindList)) + RqID + Err + ErrIndex + SVarbindList
+            SPDU = hex(int('A0', 16)) + hex(3 + 3 + 3 + len(SVarbindList)) + RqID + Err + ErrIndex + SVarbindList
 
             #Community
-            SComm = chr(4) + chr(lenComm) + community
+            SComm = hex(4) + hex(lenComm) + community
 
             #Versao
-            SVersao = chr(2) + chr(1) + chr(0)
+            SVersao = hex(2) + hex(1) + hex(0)
 
             #SNMP MESSAGE
-            MsgType = chr(0x30)
-            SSnmp = MsgType + chr(3 + 2 + lenComm + len(SPDU)) + SVersao + SComm + SPDU
-
+            MsgType = hex(30)
+            SSnmp = MsgType + hex(3 + 2 + lenComm + len(SPDU)) + SVersao + SComm + SPDU
             str2byte = SSnmp.encode()
             print(str2byte)
             self.snmp_socket.sendto(str2byte, (ip_address, 161))
