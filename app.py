@@ -16,7 +16,6 @@ def get_request():
     logging.info(f'Sending GET REQUEST to ({ip_address}, {community}, {oid})')
     status, oid_response = snmp.get_request(ip_address=ip_address, community=community, oid=oid)
     
-    print(status, oid_response)
     return {'status': status, 'response': oid_response} 
 
 if __name__ == "__main__":

@@ -1,6 +1,9 @@
 from re import I
 import socket 
 import logging
+import json
+from pyasn1.codec.ber import decoder
+from pysnmp.proto import api
 
 class SnmpManager():
     '''Class define ....'''
@@ -9,7 +12,7 @@ class SnmpManager():
         self.port = port
         self.timeout = timeout
         logging.basicConfig(level=logging.INFO)
-        self.is_ready = self.__create_socket()
+        self.is_ready = False
 
     def __create_socket(self) -> bool:
         try:
@@ -17,30 +20,31 @@ class SnmpManager():
             self.snmp_socket = socket.socket(socket.AF_INET, type=socket.SOCK_DGRAM)
             #self.snmp_socket.bind((self.address, self.port))
             self.snmp_socket.settimeout(self.timeout)
-            return True
+            self.is_ready = True
         except Exception as ex:
             logging.error(f'Error during SnmpManager initialization: {ex}') 
-            return False
+            self.is_ready = False
 
     def get_request(self, ip_address, community, oid):
         status = False
-        snmp_response = None
-        self.__create_socket()
+        json_response = {}
+        self.__create_socket() 
         if(self.is_ready):
             if (community == ''):
                 logging.info('Using default community: public')
                 community = 'public'
 
             snmp_message = self.__build_snmp_message(oid = oid, community= community)
-            print(snmp_message)
-            self.snmp_socket.sendto(snmp_message, (ip_address, 161))
+            logging.info(snmp_message)
+            self.snmp_socket.sendto(snmp_message, (ip_address, self.port))
             logging.info('Frame sent! Waiting response...')
             while True:
-                try:
-                    snmp_response = self.snmp_socket.recv(2000).decode()
+                try: 
+                    snmp_response = self.snmp_socket.recv(2000)
+                    #snmp_response = str(snmp_response, 'ISO-8859-1')
                     logging.info('SNMP Message received!')
-                    print(snmp_response)
-                    #snmp_response = self.__handle_snmp_response(snmp_response) 
+                    json_response = self.__handle_snmp_response(snmp_response)
+                    status = True
                     break
                 except Exception as ex:
                     if(self.snmp_socket.timeout):
@@ -48,21 +52,20 @@ class SnmpManager():
                     else: 
                         logging.info(f'Unhandled exception: {ex}')
                     break
-
             self.snmp_socket.close()
 
-        return status, snmp_response
+        return status, json_response
 
     def __build_snmp_message(self, community, oid = 'public'):
-        # MONTANDO VARBIND
-        ####montando Value
         TypeVal= b'\x05'
         lenVal_b = b'\x00'
         SVal = TypeVal + lenVal_b
         lenSVal_i = 2
 
         ####montando Object Identifier
-        b = oid.split(".")
+        #OID = input('Digite o OID desejado: ')
+        OID = '1.3.6.1.2.1.1.5.0'
+        b = OID.split(".")
         b = b[2:]
         oid = chr(0x2b)
 
@@ -107,7 +110,7 @@ class SnmpManager():
 
         # MONTANDO COMMUNITY STRING
         TypeComm = b'\x04'
-        Comm = b'public' #todo alterar dps
+        Comm = b'public'
         CommChr = Comm.decode()
         lenComm_b = chr(len(CommChr)).encode()
         lenComm_i = len(Comm)
@@ -127,12 +130,24 @@ class SnmpManager():
         SSnmpMsg =  MsgType + lenSSnmpMsg_b + SVersao + SComm + SPDU
         return SSnmpMsg
 
-    def __handle_snmp_response(self, snmp_response):
+    def __handle_snmp_response(self, wholeMsg):
+        while wholeMsg:
+            msgVer = int(api.decodeMessageVersion(wholeMsg))
+            if msgVer in api.protoModules:
+                pMod = api.protoModules[msgVer]
+            else:
+                print('Unsupported SNMP version %s' % msgVer)
+                return
 
-        pass
+            reqMsg, wholeMsg = decoder.decode(wholeMsg, asn1Spec=pMod.Message())
+            fullMessage = str(reqMsg)
+            varBind = fullMessage.split('VarBindList:')[-1]
+            varBind = varBind.replace('value=ObjectSyntax:', '').replace('simple=SimpleSyntax:', '')
+            varBindList = varBind.strip().split("\n",2)
+            varBindTitle = varBindList[0].strip()
+            varBindName = varBindList[1].strip()
+            varBindValue = varBindList[2].strip()
 
-    def __create_oid_list(self, oid_response):
-        return [{'oid': oid[0], 'description': oid[1]} for oid in oid_response]
-
-    def __handle_oid_sequence(oid):
-        return oid.replace('.', '')
+        finalMsg = varBindTitle + '\n' + varBindName + '\n' + varBindValue
+        logging.info(finalMsg)
+        return {'var_bind_title': varBindTitle, varBindName: varBindValue}

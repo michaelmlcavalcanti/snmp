@@ -13,7 +13,7 @@ pip install virtualenv
 Then create a folder and activate a virtual environment.
 
 ```
-virtualenv snmp source snmp/venv/bin/activate
+virtualenv snmp snmp/Scripts/activate
 ```
 
 Install the dependencies running
