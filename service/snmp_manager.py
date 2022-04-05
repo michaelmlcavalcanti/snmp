@@ -62,9 +62,7 @@ class SnmpManager():
         SVal = TypeVal + lenVal_b
         lenSVal_i = 2
 
-        ####montando Object Identifier
-        #OID = input('Digite o OID desejado: ')
-        OID = '1.3.6.1.2.1.1.5.0'
+        OID = oid
         b = OID.split(".")
         b = b[2:]
         oid = chr(0x2b)
@@ -110,7 +108,8 @@ class SnmpManager():
 
         # MONTANDO COMMUNITY STRING
         TypeComm = b'\x04'
-        Comm = b'public'
+        Comm = community.encode()
+        logging.info(community)
         CommChr = Comm.decode()
         lenComm_b = chr(len(CommChr)).encode()
         lenComm_i = len(Comm)
