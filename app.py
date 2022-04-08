@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 @app.route('/get_request', methods=['POST'])
 @cross_origin()
 def get_request():
-    request_body = request.json
+    request_body = request.get_json(force=True)
     ip_address = request_body['ip_address']
     community = request_body['community']
     oid = request_body['oid']
