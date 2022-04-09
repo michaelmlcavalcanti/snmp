@@ -22,5 +22,15 @@ def get_request():
     
     return {'status': status, 'response': oid_response} 
 
+@app.route('/get_request', methods=['GET'])
+@cross_origin()
+def get_request_params():
+    ip_address = request.args.get('ip_address')
+    community = request.args.get('community')
+    oid = request.args.get('oid')
+    logging.info(f'Sending GET REQUEST to ({ip_address}, {community}, {oid})')
+    status, oid_response = snmp.get_request(ip_address=ip_address, community=community, oid=oid) 
+    return {'status': status, 'response': oid_response} 
+
 if __name__ == "__main__":
     app.run(host='127.0.0.1', port=8080)
